@@ -2,19 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Crop, WeatherData } from '../types';
 import WeatherWidget from '../components/WeatherWidget';
-import { ArrowRight, MapPin, AlertTriangle, Clock } from 'lucide-react';
+import { ArrowRight, MapPin, AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 import { getGeneralCropAdvice } from '../services/geminiService';
+import { getWeatherData } from '../services/weatherService';
 
 const Dashboard: React.FC = () => {
   const [crops, setCrops] = useState<Crop[]>([]);
   const [weather, setWeather] = useState<WeatherData>({
-    location: 'Home Farm',
-    temperature: 24,
-    humidity: 65,
+    location: 'Loading...',
+    temperature: 0,
+    humidity: 0,
     rainfall: 0,
-    windSpeed: 12,
-    condition: 'Partly Cloudy'
+    windSpeed: 0,
+    condition: '...'
   });
+  const [loadingWeather, setLoadingWeather] = useState(true);
   const [advice, setAdvice] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -25,14 +27,35 @@ const Dashboard: React.FC = () => {
       
       if (parsed.length > 0) {
         const firstCrop = parsed[0];
-        setWeather(prev => ({ ...prev, location: firstCrop.location }));
-        getGeneralCropAdvice(firstCrop, weather).then(tip => {
-            setAdvice(prev => ({...prev, [firstCrop.id]: tip}));
-        });
+        loadWeatherData(firstCrop.location);
+      } else {
+        // Default location if no crops
+        loadWeatherData("New Delhi");
       }
+    } else {
+        loadWeatherData("New Delhi");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadWeatherData = async (location: string) => {
+    setLoadingWeather(true);
+    const data = await getWeatherData(location);
+    if (data) {
+        setWeather(data);
+        // Only generate advice if we have crops
+        const storedCrops = localStorage.getItem('crops');
+        if (storedCrops) {
+            const parsed = JSON.parse(storedCrops);
+             if (parsed.length > 0) {
+                 getGeneralCropAdvice(parsed[0], data).then(tip => {
+                    setAdvice(prev => ({...prev, [parsed[0].id]: tip}));
+                });
+             }
+        }
+    }
+    setLoadingWeather(false);
+  };
 
   const calculateDaysRemaining = (harvestDate: string) => {
     const today = new Date();
@@ -66,7 +89,14 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Weather Summary */}
-      <WeatherWidget weather={weather} />
+      <div className="relative">
+        {loadingWeather && (
+            <div className="absolute inset-0 z-20 bg-white/50 backdrop-blur-sm rounded-3xl flex items-center justify-center">
+                <RefreshCw className="animate-spin text-green-600" />
+            </div>
+        )}
+        <WeatherWidget weather={weather} />
+      </div>
 
       {/* Active Crops Grid */}
       <div>

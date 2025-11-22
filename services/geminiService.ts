@@ -231,7 +231,7 @@ const CROP_DURATION_FALLBACK: Record<string, number> = {
 };
 
 export const predictHarvestDate = async (cropName: string, sowingDate: string, location: string): Promise<string> => {
-  // Quick local fallback calculation first to ensure responsiveness
+  // Quick local fallback calculation first to ensure responsiveness and cover API limits
   let estimatedDays = 120; // default
   const normalizedName = cropName.toLowerCase().trim();
   
@@ -292,6 +292,7 @@ export const getSmartCropSuggestions = async (location: string, date: string): P
   }
 };
 
+// Use free open-meteo service for this now, but keep as AI fallback if needed
 export const getLocationNameFromCoords = async (lat: number, lng: number): Promise<string> => {
   try {
     const prompt = `Identify the Indian city/district for: ${lat}, ${lng}. Return ONLY the name.`;

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Crop, WeatherData, PestAlert, FertilizerRecommendation } from '../types';
 import { getPestAlerts, getFertilizerRecommendations } from '../services/geminiService';
+import { getWeatherData } from '../services/weatherService';
 import WeatherWidget from '../components/WeatherWidget';
 import { ArrowLeft, Bug, Sprout, Calendar, AlertOctagon, Loader2, CheckCircle, AlertTriangle, Leaf } from 'lucide-react';
 
@@ -16,15 +17,13 @@ const CropDetails: React.FC = () => {
   const [fertilizers, setFertilizers] = useState<FertilizerRecommendation[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
 
-  // Mock Live Weather specific to this crop
-  // In a real app, you would fetch weather by crop.location lat/long
   const [weather, setWeather] = useState<WeatherData>({
-    temperature: 24,
-    humidity: 60,
+    temperature: 0,
+    humidity: 0,
     rainfall: 0,
-    windSpeed: 10,
-    condition: 'Sunny',
-    location: 'Field'
+    windSpeed: 0,
+    condition: 'Loading...',
+    location: '...'
   });
 
   useEffect(() => {
@@ -34,16 +33,7 @@ const CropDetails: React.FC = () => {
       const found = parsed.find((c: Crop) => c.id === id);
       if (found) {
         setCrop(found);
-        // Simulate specific weather for this crop
-        setWeather({
-            temperature: 26,
-            humidity: 72,
-            rainfall: 5,
-            windSpeed: 12,
-            condition: 'Cloudy',
-            location: found.location
-        });
-        fetchInsights(found);
+        initPage(found);
       } else {
         navigate('/');
       }
@@ -52,12 +42,25 @@ const CropDetails: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const fetchInsights = async (currentCrop: Crop) => {
+  const initPage = async (currentCrop: Crop) => {
+      // 1. Fetch Real Weather
+      const realWeather = await getWeatherData(currentCrop.location);
+      if (realWeather) {
+          setWeather(realWeather);
+          // 2. Fetch AI Insights using real weather
+          fetchInsights(currentCrop, realWeather);
+      } else {
+          // Fallback if weather API fails
+          fetchInsights(currentCrop, weather);
+      }
+  };
+
+  const fetchInsights = async (currentCrop: Crop, currentWeather: WeatherData) => {
     setAiLoading(true);
     try {
         // Fetch insights in parallel
         const [pests, ferts] = await Promise.all([
-            getPestAlerts(currentCrop, weather),
+            getPestAlerts(currentCrop, currentWeather),
             getFertilizerRecommendations(currentCrop)
         ]);
         setPestAlerts(pests);
