@@ -1,0 +1,7 @@
+{
+  "name": "AgroSmart AI Dashboard",
+  "description": "A comprehensive AI-powered farming assistant featuring crop monitoring, weather insights, pest alerts, fertilizer recommendations, market trends, and crop rotation planning.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
