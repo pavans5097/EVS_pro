@@ -1,8 +1,7 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { Crop, WeatherData, PestAlert, FertilizerRecommendation, MarketPrice, RotationPlan, CropSuggestion } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const modelId = 'gemini-2.5-flash';
 
 // Schema Definitions
